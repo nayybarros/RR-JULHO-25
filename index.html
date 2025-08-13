@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Resultados Imobiliários</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c5530 0%, #3e7b3e 100%);
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .tabs-container {
+            background: white;
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        .tabs {
+            display: flex;
+            overflow-x: auto;
+            padding: 0 40px;
+        }
+
+        .tab {
+            background: none;
+            border: none;
+            padding: 20px 30px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #7f8c8d;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            background-color: #f8f9fa;
+            color: #2c3e50;
+        }
+
+        .tab.active {
+            color: #2c5530;
+            border-bottom-color: #27ae60;
+            background-color: #f0f9f0;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 40px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .kpi-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .kpi-card.positive {
+            border-left-color: #27ae60;
+        }
+
+        .kpi-card.negative {
+            border-left-color: #e74c3c;
+        }
+
+        .kpi-card.neutral {
+            border-left-color: #f39c12;
+        }
+
+        .kpi-title {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .kpi-value {
+            font-size: 2em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .kpi-subtitle {
+            font-size: 0.85em;
+            color: #95a5a6;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .chart-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .evolution-section {
+            margin-top: 40px;
+        }
+
+        .evolution-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            overflow-x: auto;
+        }
+
+        .performance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .performance-table th,
+        .performance-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .performance-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.9em;
+        }
+
+        .performance-table td {
+            font-size: 0.85em;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-positive { background-color: #27ae60; }
+        .status-negative { background-color: #e74c3c; }
+        .status-neutral { background-color: #f39c12; }
+
+        /* Analysis Tab Styles */
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .analysis-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border-top: 5px solid;
+        }
+
+        .analysis-card.positive {
+            border-top-color: #27ae60;
+        }
+
+        .analysis-card.negative {
+            border-top-color: #e74c3c;
+        }
+
+        .analysis-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .analysis-title.positive {
+            color: #27ae60;
+        }
+
+        .analysis-title.negative {
+            color: #e74c3c;
+        }
+
+        .analysis-list {
+            list-style: none;
+        }
+
+        .analysis-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.02);
+            border-left: 3px solid;
+        }
+
+        .analysis-item.positive {
+            border-left-color: #27ae60;
+            background: rgba(39, 174, 96, 0.05);
+        }
+
+        .analysis-item.negative {
+            border-left-color: #e74c3c;
+            background: rgba(231, 76, 60, 0.05);
+        }
+
+        .analysis-icon {
+            font-size: 1.2em;
+            margin-right: 15px;
+            margin-top: 2px;
+        }
+
+        .analysis-icon.positive {
+            color: #27ae60;
+        }
+
+        .analysis-icon.negative {
+            color: #e74c3c;
+        }
+
+        .analysis-text {
+            flex: 1;
+            line-height: 1.6;
+        }
+
+        .analysis-value {
+            font-weight: 700;
+            font-size: 1.1em;
+        }
+
+        .recommendations-section {
+            margin-top: 40px;
+        }
+
+        .recommendations-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
+        }
+
+        .recommendations-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .recommendations-list {
+            list-style: none;
+        }
+
+        .recommendation-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .recommendation-icon {
+            color: #f1c40f;
+            font-size: 1.2em;
+            margin-right: 15px;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid, .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tab-content {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .tabs {
+                padding: 0 20px;
+            }
+
+            .tab {
+                padding: 15px 20px;
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Dashboard de Resultados VICTA - Julho/2025</h1>
+            <p>Análise de Performance e Evolução VGV</p>
+        </div>
+
+        <div class="tabs-container">
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('resumo')">📊 Resumo Executivo</button>
+                <button class="tab" onclick="showTab('analise')">🔍 Análise Crítica</button>
+                <button class="tab" onclick="showTab('produto')">📦 Produto/Estoque</button>
+                <button class="tab" onclick="showTab('detalhes')">📋 Detalhes - Julho/2025</button>
+            </div>
+        </div>
+
+        <!-- Resumo Executivo Tab -->
+        <div id="resumo" class="tab-content active">
+            <!-- KPIs -->
+            <div class="kpi-grid">
+                <div class="kpi-card positive">
+                    <div class="kpi-title">1T2025 Performance</div>
+                    <div class="kpi-value" style="color: #27ae60;">177%</div>
+                    <div class="kpi-subtitle">R$ 115.017M vs R$ 64.321M</div>
+                </div>
+
+                <div class="kpi-card positive">
+                    <div class="kpi-title">2T2025 Performance</div>
+                    <div class="kpi-value" style="color: #27ae60;">120%</div>
+                    <div class="kpi-subtitle">R$ 137.221M vs R$ 114.486M</div>
+                </div>
+
+                <div class="kpi-card negative">
+                    <div class="kpi-title">3T2025 Performance</div>
+                    <div class="kpi-value" style="color: #e74c3c;">39%</div>
+                    <div class="kpi-subtitle">R$ 45.176M vs R$ 115.423M</div>
+                </div>
+
+                <div class="kpi-card positive">
+                    <div class="kpi-title">Performance Anual</div>
+                    <div class="kpi-value" style="color: #27ae60;">74%</div>
+                    <div class="kpi-subtitle">R$ 297.414M vs R$ 400.376M</div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <div class="chart-title">Previsto vs Realizado Julho/2025</div>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title">Performance Trimestral (%)</div>
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Evolution VGV -->
+            <div class="evolution-section">
+                <div class="chart-title" style="text-align: center; margin-bottom: 30px; font-size: 1.5em;">
+                    Evolução VGV - Previsto vs Realizado
+                </div>
+                
+                <div class="evolution-grid">
+                    <div class="chart-container">
+                        <div class="chart-title">Evolução Trimestral</div>
+                        <canvas id="quarterlyChart"></canvas>
+                    </div>
+
+                    <div class="chart-container">
+                        <div class="chart-title">Evolução Semestral</div>
+                        <canvas id="semesterChart"></canvas>
+                    </div>
+
+                    <div class="chart-container">
+                        <div class="chart-title">Evolução Anual</div>
+                        <canvas id="annualChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Análise Crítica Tab -->
+        <div id="analise" class="tab-content">
+            <div class="analysis-grid">
+                <!-- Pontos Positivos -->
+                <div class="analysis-card positive">
+                    <h2 class="analysis-title positive">✅ Pontos Positivos</h2>
+                    <ul class="analysis-list">
+                        <li class="analysis-item positive">
+                            <span class="analysis-icon positive">🚀</span>
+                            <div class="analysis-text">
+                                <strong>VITÓRIA EUSÉBIO - Destaque Absoluto</strong><br>
+                                <span class="analysis-value">+R$ 8.911M acima da meta (285% de performance)</span><br>
+                                Vendeu 58 unidades vs 16 previstas - crescimento excepcional
+                            </div>
+                        </li>
+                        <li class="analysis-item positive">
+                            <span class="analysis-icon positive">📈</span>
+                            <div class="analysis-text">
+                                <strong>Belvedere Condomínio Clube</strong><br>
+                                <span class="analysis-value">+R$ 3.608M acima da meta (210% de performance)</span><br>
+                                Dobrou as vendas: 20 unidades vs 10 previstas
+                            </div>
+                        </li>
+                        <li class="analysis-item positive">
+                            <span class="analysis-icon positive">💪</span>
+                            <div class="analysis-text">
+                                <strong>Excelente 1º Semestre</strong><br>
+                                <span class="analysis-value">177% (1T) + 120% (2T) de performance</span><br>
+                                Superou amplamente as expectativas nos primeiros 6 meses
+                            </div>
+                        </li>
+                        <li class="analysis-item positive">
+                            <span class="analysis-icon positive">🎯</span>
+                            <div class="analysis-text">
+                                <strong>Categoria IMOB - Performance Sólida</strong><br>
+                                <span class="analysis-value">+R$ 7.349M em Julho/25 acima da meta (26,5% superior)</span><br>
+                                132 unidades vendidas vs 103 previstas
+                            </div>
+                        </li>
+                        <li class="analysis-item positive">
+                            <span class="analysis-icon positive">🔥</span>
+                            <div class="analysis-text">
+                                <strong>Atlântico e Vista Parque</strong><br>
+                                <span class="analysis-value">Performance consistente acima de 100% em Julho/25 </span><br>
+                                Empreendimentos estáveis e previsíveis
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Pontos Negativos -->
+                <div class="analysis-card negative">
+                    <h2 class="analysis-title negative">⚠️ Pontos de Atenção</h2>
+                    <ul class="analysis-list">
+                        <li class="analysis-item negative">
+                            <span class="analysis-icon negative">📉</span>
+                            <div class="analysis-text">
+                                <strong>3º Trimestre</strong><br>
+                                <span class="analysis-value">39% da meta atingida</span><br>
+                                R$ 45.176M vs R$ 115.423M previsto - resta de R$ 70.247M (Média de 30Mm mês)
+                            </div>
+                        </li>
+                        <li class="analysis-item negative">
+                            <span class="analysis-icon negative">🏠</span>
+                            <div class="analysis-text">
+                                <strong>Canal HOUSE</strong><br>
+                                <span class="analysis-value">-R$ 2.737M abaixo da meta em Julho/25 (23% inferior)</span><br>
+                                Apenas 28 unidades vendidas vs 44 previstas
+                            </div>
+                        </li>
+                        <li class="analysis-item negative">
+                            <span class="analysis-icon negative">🚫</span>
+                            <div class="analysis-text">
+                                <strong>Projetos</strong><br>
+                                <span class="analysis-value">Paupina (-R$ 4.852M)</span><br>
+                                Impacto referente ao adiamento do Lançamento
+                            </div>
+                        </li>
+                        <li class="analysis-item negative">
+                            <span class="analysis-icon negative">⚡</span>
+                            <div class="analysis-text">
+                                <strong>Vista Mar - Desempenho abaixo do Esperado</strong><br>
+                                <span class="analysis-value">-R$ 512M abaixo da meta</span><br>
+                                Apenas 7 unidades vendidas vs 9 previstas (melhoria pequena)
+                            </div>
+                        </li>
+                        <li class="analysis-item negative">
+                            <span class="analysis-icon negative">📊</span>
+                            <div class="analysis-text">
+                                <strong>Performance Anual</strong><br>
+                                <span class="analysis-value">74% da meta anual atingida</span><br>
+                                É necessário manter o esforço contínuo para garantir o resultado do 3º e 4º trimestre
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="recommendations-section">
+                <div class="recommendations-card">
+                    <h2 class="recommendations-title">💡 Ações para Agosto/2025 </h2>
+                    <ul class="recommendations-list">
+                        <li class="recommendation-item">
+                            <span class="recommendation-icon">🎯</span>
+                            <div>
+                                <strong>IMOB:</strong> Intensificar ações comerciais (Invasões 12 a 15 com foco nos produtos da linha vista e Lançamento Paupina) e Acompanhamento Direcionado para Carteira da Linha Vista
+                            </div>
+                        </li>
+                        <li class="recommendation-item">
+                            <span class="recommendation-icon">🗗</span>
+                            <div>
+                                <strong>IMOB:</strong> Estrategia de Bonificação para Liderança do Mercado (Ranking Gerentes para os Empreendimento Atlântico, Vista Costeira e Vista Parque)                            
+</div>
+                        </li>
+                        <li class="recommendation-item">
+                            <span class="recommendation-icon">🏠</span>
+                            <div>
+                                <strong> HOUSE:</strong> Direcionamento Estratégico com o Novo Gerente Regional da House
+
+                            </div>
+
+                        </li>
+                        <li class="recommendation-item">
+                            <span class="recommendation-icon">📈</span>
+                            <div>
+                                <strong>HOUSE:</strong> Intensificar as ações implantadas no mês anterior, como controle de pisada, gamificação e reconhecimento, para potencializar os resultados e engajamento da equipe.
+                            </div>
+                        </li>
+                        <li class="recommendation-item">
+                            <span class="recommendation-icon">📍</span>
+                            <div>
+                                <strong>Monitoramento Intensivo:</strong> Acompanhar semanalmente os empreendimentos com baixa performance
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Produto/Estoque Tab -->
+        <div id="produto" class="tab-content">
+            <!-- KPIs de Estoque -->
+            <div class="kpi-grid">
+                <div class="kpi-card positive">
+                    <div class="kpi-title">Total Estoque Unidades</div>
+                    <div class="kpi-value" style="color: #27ae60;">1.750</div>
+                    <div class="kpi-subtitle">Unidades disponíveis</div>
+                </div>
+
+                <div class="kpi-card positive">
+                    <div class="kpi-title">VGV Total Estoque</div>
+                    <div class="kpi-value" style="color: #27ae60;">R$ 491,3M</div>
+                    <div class="kpi-subtitle">Valor total do estoque</div>
+                </div>
+
+                <div class="kpi-card neutral">
+                    <div class="kpi-title">VGV Médio Estoque</div>
+                    <div class="kpi-value" style="color: #f39c12;">R$ 280,7K</div>
+                    <div class="kpi-subtitle">Valor médio por unidade</div>
+                </div>
+            </div>
+
+            <!-- Tabela Detalhada de Estoque -->
+            <div class="table-container">
+                <div class="chart-title">Controle de Estoque por Empreendimento</div>
+                <div style="overflow-x: auto;">
+                    <table class="performance-table">
+                        <thead>
+                            <tr>
+                                <th>Empreendimento</th>
+                                <th>Fase</th>
+                                <th>Lançada</th>
+                                <th>Data Entrega</th>
+                                <th>Lançada</th>
+                                <th>Vendida</th>
+                                <th>VGV Vendida</th>
+                                <th>VGV Médio Venda</th>
+                                <th>Estoque Qtd</th>
+                                <th>Estoque VGV</th>
+                                <th>VGV Médio Estoque</th>
+                                <th>M² Estoque</th>
+                                <th>Pro-Soluto</th>
+                                <th>Pós-Obra</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Mirante Condomínio Clube</strong></td>
+                                <td><span style="background: #e8f5e8; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">ENTREGUE</span></td>
+                                <td>327</td>
+                                <td>dez/24</td>
+                                <td>327</td>
+                                <td>327</td>
+                                <td>R$ 102.958.918,27</td>
+                                <td>R$ 314.859,08</td>
+                                <td>0</td>
+                                <td>R$ -</td>
+                                <td>R$ -</td>
+                                <td>-</td>
+                                <td>27,21%</td>
+                                <td>1,79%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Belvedere Condomínio Clube</strong></td>
+                                <td><span style="background: #fff3cd; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">FINALIZAÇÃO</span></td>
+                                <td>362</td>
+                                <td>ago/25</td>
+                                <td>362</td>
+                                <td>302</td>
+                                <td>R$ 95.191.256,11</td>
+                                <td>R$ 315.202,83</td>
+                                <td>60</td>
+                                <td>R$ 22.245.495,43</td>
+                                <td>R$ 370.758,26</td>
+                                <td>R$ 5.734,02</td>
+                                <td>34,26%</td>
+                                <td>5,13%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Vista Mar Condomínio Clube</strong></td>
+                                <td><span style="background: #fff3cd; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">FINALIZAÇÃO</span></td>
+                                <td>260</td>
+                                <td>mar/26</td>
+                                <td>238</td>
+                                <td>238</td>
+                                <td>R$ 79.491.707,00</td>
+                                <td>R$ 341.166,12</td>
+                                <td>27</td>
+                                <td>R$ 9.998.831,92</td>
+                                <td>R$ 370.327,11</td>
+                                <td>R$ 7.454,14</td>
+                                <td>31,16%</td>
+                                <td>3,10%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>JÓQUEI CONDOMÍNIO CLUBE</strong></td>
+                                <td><span style="background: #ffeaa7; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">SUSTENTAÇÃO</span></td>
+                                <td>356</td>
+                                <td>dez/27</td>
+                                <td>167</td>
+                                <td>167</td>
+                                <td>R$ 59.734.714,38</td>
+                                <td>R$ 357.692,90</td>
+                                <td>189</td>
+                                <td>R$ 71.604.755,77</td>
+                                <td>R$ 378.845,27</td>
+                                <td>R$ 7.619,92</td>
+                                <td>30,53%</td>
+                                <td>2,16%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>VITÓRIA SENNA</strong></td>
+                                <td><span style="background: #dfe6e9; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">SUSTENTAÇÃO</span></td>
+                                <td>280</td>
+                                <td>ago/27</td>
+                                <td>278</td>
+                                <td>278</td>
+                                <td>R$ 58.481.909,13</td>
+                                <td>R$ 210.366,88</td>
+                                <td>2</td>
+                                <td>R$ 432.599,95</td>
+                                <td>R$ 216.299,99</td>
+                                <td>R$ 5.685,40</td>
+                                <td>13,01%</td>
+                                <td>5,94%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>VITÓRIA ACÁCIA</strong></td>
+                                <td><span style="background: #ffeaa7; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">SUSTENTAÇÃO</span></td>
+                                <td>280</td>
+                                <td>jun/27</td>
+                                <td>254</td>
+                                <td>254</td>
+                                <td>R$ 54.765.104,23</td>
+                                <td>R$ 215.610,65</td>
+                                <td>26</td>
+                                <td>R$ 5.630.451,74</td>
+                                <td>R$ 216.555,84</td>
+                                <td>R$ 5.686,87</td>
+                                <td>13,05%</td>
+                                <td>7,86%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Vitória Caucaia</strong></td>
+                                <td><span style="background: #dfe6e9; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">SUSTENTAÇÃO</span></td>
+                                <td>272</td>
+                                <td>nov/26</td>
+                                <td>259</td>
+                                <td>R$ 52.920.947,55</td>
+                                <td>R$ 196.739,15</td>
+                                <td>3</td>
+                                <td>R$ 611.756,97</td>
+                                <td>R$ 203.918,99</td>
+                                <td>R$ 4.782,65</td>
+                                <td>13,89%</td>
+                                <td>9,08%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Vitória Mondubim</strong></td>
+                                <td><span style="background: #ffeaa7; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">SUSTENTAÇÃO</span></td>
+                                <td>240</td>
+                                <td>mar/26</td>
+                                <td>240</td>
+                                <td>240</td>
+                                <td>R$ 50.255.996,78</td>
+                                <td>R$ 209.399,99</td>
+                                <td>0</td>
+                                <td>R$ -</td>
+                                <td>R$ -</td>
+                                <td>-</td>
+                                <td>18,46%</td>
+                                <td>9,93%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>VISTA PARQUE CONDOMÍNIO CLUBE</strong></td>
+                                <td><span style="background: #ffeaa7; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">SUSTENTAÇÃO</span></td>
+                                <td>268</td>
+                                <td>mar/27</td>
+                                <td>131</td>
+                                <td>131</td>
+                                <td>R$ 42.515.924,00</td>
+                                <td>R$ 324.549,04</td>
+                                <td>137</td>
+                                <td>R$ 48.797.323,02</td>
+                                <td>R$ 356.184,84</td>
+                                <td>R$ 7.226,72</td>
+                                <td>15,37%</td>
+                                <td>3,89%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Alta Vista Passaré</strong></td>
+                                <td><span style="background: #dfe6e9; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">SUSTENTAÇÃO</span></td>
+                                <td>169</td>
+                                <td>dez/23</td>
+                                <td>169</td>
+                                <td>169</td>
+                                <td>R$ 36.677.382,32</td>
+                                <td>R$ 217.025,83</td>
+                                <td>0</td>
+                                <td>R$ -</td>
+                                <td>R$ -</td>
+                                <td>-</td>
+                                <td>20,51%</td>
+                                <td>9,41%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>VISTA COSTEIRA CUMBUCO</strong></td>
+                                <td><span style="background: #ffcccb; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">LANÇAMENTO</span></td>
+                                <td>240</td>
+                                <td>jul/28</td>
+                                <td>104</td>
+                                <td>104</td>
+                                <td>R$ 34.490.339,86</td>
+                                <td>R$ 331.637,88</td>
+                                <td>136</td>
+                                <td>R$ 47.772.764,64</td>
+                                <td>R$ 351.270,33</td>
+                                <td>R$ 7.241,25</td>
+                                <td>36,54%</td>
+                                <td>0,05%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>ATLÂNTICO CONDOMÍNIO CLUBE</strong></td>
+                                <td><span style="background: #ffcccb; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">LANÇAMENTO</span></td>
+                                <td>322</td>
+                                <td>nov/28</td>
+                                <td>65</td>
+                                <td>65</td>
+                                <td>R$ 23.640.606,06</td>
+                                <td>R$ 363.701,63</td>
+                                <td>257</td>
+                                <td>R$ 91.925.575,68</td>
+                                <td>R$ 357.587,36</td>
+                                <td>R$ 7.217,97</td>
+                                <td>34,38%</td>
+                                <td>1,41%</td>
+                            </tr>
+                            <tr style="background: #e8f5e8; font-weight: 600;">
+                                <td><strong>VITÓRIA EUSÉBIO</strong></td>
+                                <td><span style="background: #ffcccb; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">LANÇAMENTO</span></td>
+                                <td>592</td>
+                                <td>jul/28</td>
+                                <td>89</td>
+                                <td>89</td>
+                                <td>R$ 18.416.552,49</td>
+                                <td>R$ 206.927,56</td>
+                                <td>503</td>
+                                <td>R$ 103.855.229,00</td>
+                                <td>R$ 206.471,63</td>
+                                <td>R$ 5.159,21</td>
+                                <td>18,22%</td>
+                                <td>7,21%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>VITÓRIA MARACANAÚ</strong></td>
+                                <td><span style="background: #ffcccb; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">LANÇAMENTO</span></td>
+                                <td>448</td>
+                                <td>jul/28</td>
+                                <td>38</td>
+                                <td>38</td>
+                                <td>R$ 8.111.104,00</td>
+                                <td>R$ 213.450,11</td>
+                                <td>410</td>
+                                <td>R$ 89.102.366,00</td>
+                                <td>R$ 217.322,84</td>
+                                <td>R$ 5.707,01</td>
+                                <td>16,88%</td>
+                                <td>7,47%</td>
+                            </tr>
+                            <!-- Linha de Total -->
+                            <tr style="background: #f8f9fa; font-weight: bold; border-top: 3px solid #2c5530;">
+                                <td style="color: #2c5530;">TOTAL GERAL</td>
+                                <td style="color: #2c5530;">-</td>
+                                <td style="color: #2c5530;">4.606</td>
+                                <td style="color: #2c5530;">-</td>
+                                <td style="color: #2c5530;">2.856</td>
+                                <td style="color: #2c5530;">2.856</td>
+                                <td style="color: #27ae60;">R$ 799.374.283,18</td>
+                                <td style="color: #27ae60;">R$ 279.889,45</td>
+                                <td style="color: #2c5530;">1.750</td>
+                                <td style="color: #27ae60;">R$ 491.374.494,35</td>
+                                <td style="color: #27ae60;">R$ 280.785,42</td>
+                                <td style="color: #2c5530;">-</td>
+                                <td style="color: #2c5530;">21,87%</td>
+                                <td style="color: #2c5530;">5,02%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Funil de Vendas Tab -->
+        <div id="funil" class="tab-content">
+            <div style="text-align: center; padding: 60px 20px;">
+                <div style="font-size: 3em; margin-bottom: 20px;">🎯</div>
+                <h2 style="color: #2c5530; margin-bottom: 15px;">Funil de Vendas</h2>
+                <p style="color: #7f8c8d; font-size: 1.1em;">Esta aba será configurada assim que você fornecer os dados de:</p>
+                <ul style="list-style: none; margin-top: 20px; color: #95a5a6;">
+                    <li>• Etapas do funil de vendas</li>
+                    <li>• Números por etapa</li>
+                    <li>• Taxas de conversão</li>
+                    <li>• Período de análise</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Detalhes por Empreendimento Tab -->
+        <div id="detalhes" class="tab-content">
+            <div class="table-container">
+                <div class="chart-title">Performance por Empreendimento</div>
+                <table class="performance-table">
+                    <thead>
+                        <tr>
+                            <th>Empreendimento</th>
+                            <th>Previsto (R$)</th>
+                            <th>Realizado (R$)</th>
+                            <th>Gap (R$)</th>
+                            <th>Status</th>
+                            <th>Unidades</th>
+                        </tr>
+                    </thead>
+                    <tbody id="performanceTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Função para alternar abas
+        function showTab(tabName) {
+            // Esconder todas as abas
+            const tabContents = document.querySelectorAll('.tab-content');
+            const tabs = document.querySelectorAll('.tab');
+            
+            tabContents.forEach(content => content.classList.remove('active'));
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Mostrar aba selecionada
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            // Redesenhar gráficos se necessário
+            if (tabName === 'resumo') {
+                setTimeout(() => {
+                    window.dispatchEvent(new Event('resize'));
+                }, 100);
+            }
+        }
+
+        // Dados dos empreendimentos
+        const empreendimentos = [
+            {nome: "Alta Vista Passaré", previsto: 0, realizado: 0, gap: 0, previstoUn: 0, realizadoUn: 0, status: "neutral"},
+            {nome: "Mirante Condomínio Clube", previsto: 0, realizado: 355, gap: 355, previstoUn: 0, realizadoUn: 1, status: "positive"},
+            {nome: "Belvedere Condomínio Clube", previsto: 3277, realizado: 6885, gap: 3608, previstoUn: 10, realizadoUn: 20, status: "positive"},
+            {nome: "Vitória Caucaia", previsto: 0, realizado: 0, gap: 0, previstoUn: 0, realizadoUn: 0, status: "neutral"},
+            {nome: "Vista Mar Condomínio Clube", previsto: 3193, realizado: 2587, gap: -512, previstoUn: 3, realizadoUn: 7, status: "negative"},
+            {nome: "Vitória Mondubim", previsto: 0, realizado: 0, gap: 0, previstoUn: 0, realizadoUn: 0, status: "neutral"},
+            {nome: "VISTA PARQUE CONDOMÍNIO CLUBE", previsto: 3316, realizado: 3650, gap: 335, previstoUn: 10, realizadoUn: 11, status: "positive"},
+            {nome: "JÓQUEI CONDOMÍNIO CLUBE", previsto: 3935, realizado: 4102, gap: 167, previstoUn: 11, realizadoUn: 11, status: "positive"},
+            {nome: "VITÓRIA SENNA", previsto: 2315, realizado: 0, gap: -2315, previstoUn: 11, realizadoUn: 0, status: "negative"},
+            {nome: "VITÓRIA ACÁCIA", previsto: 2396, realizado: 2599, gap: 204, previstoUn: 11, realizadoUn: 12, status: "positive"},
+            {nome: "Paupina - Res. 1", previsto: 4852, realizado: 0, gap: -4852, previstoUn: 22, realizadoUn: 0, status: "negative"},
+            {nome: "ATLÂNTICO CONDOMÍNIO CLUBE", previsto: 4559, realizado: 4923, gap: 364, previstoUn: 13, realizadoUn: 14, status: "positive"},
+            {nome: "VISTA COSTEIRA CUMBUCO", previsto: 4807, realizado: 4595, gap: -212, previstoUn: 15, realizadoUn: 13, status: "negative"},
+            {nome: "VITÓRIA EUSÉBIO", previsto: 3120, realizado: 12031, gap: 8911, previstoUn: 16, realizadoUn: 58, status: "positive"},
+            {nome: "VITÓRIA MARACANAÚ", previsto: 3800, realizado: 3448, gap: -552, previstoUn: 19, realizadoUn: 15, status: "negative"}
+        ];
+
+        // Dados de totais
+        const totais = {
+            empreendimentos: {previsto: 39577, realizado: 45176, gap: 5599, previstoUn: 147, realizadoUn: 163},
+            house: {previsto: 11873, realizado: 9136, gap: -2737, previstoUn: 44, realizadoUn: 28},
+            imob: {previsto: 27704, realizado: 35053, gap: 7349, previstoUn: 103, realizadoUn: 132}
+        };
+
+        // Dados de evolução VGV
+        const evolutionData = {
+            quarterly: {
+                labels: ['1T2025', '2T2025', '3T2025'],
+                previsto: [64.321, 114.486, 115.423],
+                realizado: [115.017, 137.221, 45.176]
+            },
+            semester: {
+                labels: ['1S2025', '2S2025'],
+                previsto: [179.407, 220.969],
+                realizado: [252.238, 45.176]
+            },
+            annual: {
+                labels: ['2025', 'jul/25'],
+                previsto: [400.376, 238.983],
+                realizado: [297.414, 297.414]
+            }
+        };
+
+        // Configuração de cores
+        const colors = {
+            previsto: '#95a5a6',
+            realizado: '#27ae60',
+            negative: '#e74c3c'
+        };
+
+        // Chart 1: Categoria Previsto vs Realizado
+        const ctx1 = document.getElementById('categoryChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: ['Total Empreendimentos', 'Houses', 'IMOB'],
+                datasets: [
+                    {
+                        label: 'Previsto',
+                        data: [39577, 11873, 27704],
+                        backgroundColor: colors.previsto,
+                        borderRadius: 8
+                    },
+                    {
+                        label: 'Realizado',
+                        data: [45176, 9136, 35063],
+                        backgroundColor: colors.realizado,
+                        borderRadius: 8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'R$ ' + value + 'M';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Chart 2: Performance Trimestral
+        const ctx2 = document.getElementById('performanceChart').getContext('2d');
+        const performanceData = [177, 120, 39]; // % de performance por trimestre
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: ['1T2025', '2T2025', '3T2025'],
+                datasets: [{
+                    label: 'Performance (%)',
+                    data: performanceData,
+                    backgroundColor: performanceData.map(p => p >= 100 ? colors.realizado : colors.negative),
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Chart 3: Evolução Trimestral
+        const ctx3 = document.getElementById('quarterlyChart').getContext('2d');
+        new Chart(ctx3, {
+            type: 'line',
+            data: {
+                labels: evolutionData.quarterly.labels,
+                datasets: [
+                    {
+                        label: 'Previsto',
+                        data: evolutionData.quarterly.previsto,
+                        borderColor: colors.previsto,
+                        backgroundColor: colors.previsto + '20',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Realizado',
+                        data: evolutionData.quarterly.realizado,
+                        borderColor: colors.realizado,
+                        backgroundColor: colors.realizado + '20',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'R$ ' + value + 'M';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Chart 4: Evolução Semestral
+        const ctx4 = document.getElementById('semesterChart').getContext('2d');
+        new Chart(ctx4, {
+            type: 'bar',
+            data: {
+                labels: evolutionData.semester.labels,
+                datasets: [
+                    {
+                        label: 'Previsto',
+                        data: evolutionData.semester.previsto,
+                        backgroundColor: colors.previsto,
+                        borderRadius: 8
+                    },
+                    {
+                        label: 'Realizado',
+                        data: evolutionData.semester.realizado,
+                        backgroundColor: colors.realizado,
+                        borderRadius: 8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'R$ ' + value + 'M';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Chart 5: Evolução Anual
+        const ctx5 = document.getElementById('annualChart').getContext('2d');
+        new Chart(ctx5, {
+            type: 'bar',
+            data: {
+                labels: evolutionData.annual.labels,
+                datasets: [
+                    {
+                        label: 'Previsto',
+                        data: evolutionData.annual.previsto,
+                        backgroundColor: colors.previsto,
+                        borderRadius: 8
+                    },
+                    {
+                        label: 'Realizado',
+                        data: evolutionData.annual.realizado,
+                        backgroundColor: colors.realizado,
+                        borderRadius: 8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'R$ ' + value + 'M';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Popular tabela de performance
+        const tableBody = document.getElementById('performanceTableBody');
+        empreendimentos.forEach(emp => {
+            const row = document.createElement('tr');
+            const statusClass = emp.status === 'positive' ? 'status-positive' : 
+                              emp.status === 'negative' ? 'status-negative' : 'status-neutral';
+            
+            row.innerHTML = `
+                <td>${emp.nome}</td>
+                <td>R$ ${emp.previsto.toLocaleString('pt-BR')}M</td>
+                <td>R$ ${emp.realizado.toLocaleString('pt-BR')}M</td>
+                <td style="color: ${emp.gap >= 0 ? '#27ae60' : '#e74c3c'};">
+                    ${emp.gap >= 0 ? '+' : ''}R$ ${emp.gap.toLocaleString('pt-BR')}M
+                </td>
+                <td><span class="status-dot ${statusClass}"></span>${emp.gap > 0 ? 'Acima' : emp.gap < 0 ? 'Abaixo' : 'Neutro'}</td>
+                <td>${emp.previstoUn}/${emp.realizadoUn}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        // Adicionar linha de total geral
+        const totalRow = document.createElement('tr');
+        totalRow.style.backgroundColor = '#f8f9fa';
+        totalRow.style.fontWeight = 'bold';
+        totalRow.style.borderTop = '2px solid #2c5530';
+        totalRow.innerHTML = `
+            <td style="color: #2c5530;">TOTAL GERAL</td>
+            <td style="color: #2c5530;">R$ ${totais.empreendimentos.previsto.toLocaleString('pt-BR')}M</td>
+            <td style="color: #2c5530;">R$ ${totais.empreendimentos.realizado.toLocaleString('pt-BR')}M</td>
+            <td style="color: #27ae60;">+R$ ${totais.empreendimentos.gap.toLocaleString('pt-BR')}M</td>
+            <td style="color: #2c5530;"><span class="status-dot status-positive"></span>Acima</td>
+            <td style="color: #2c5530;">${totais.empreendimentos.previstoUn}/${totais.empreendimentos.realizadoUn}</td>
+        `;
+        tableBody.appendChild(totalRow);
+
+        // Adicionar linha de total HOUSE
+        const houseRow = document.createElement('tr');
+        houseRow.style.backgroundColor = '#fff5f5';
+        houseRow.style.fontWeight = '600';
+        houseRow.innerHTML = `
+            <td style="color: #e74c3c;">TOTAL HOUSE</td>
+            <td style="color: #e74c3c;">R$ ${totais.house.previsto.toLocaleString('pt-BR')}M</td>
+            <td style="color: #e74c3c;">R$ ${totais.house.realizado.toLocaleString('pt-BR')}M</td>
+            <td style="color: #e74c3c;">R$ ${totais.house.gap.toLocaleString('pt-BR')}M</td>
+            <td style="color: #e74c3c;"><span class="status-dot status-negative"></span>Abaixo</td>
+            <td style="color: #e74c3c;">${totais.house.previstoUn}/${totais.house.realizadoUn}</td>
+        `;
+        tableBody.appendChild(houseRow);
+
+        // Adicionar linha de total IMOB
+        const imobRow = document.createElement('tr');
+        imobRow.style.backgroundColor = '#f0f9f0';
+        imobRow.style.fontWeight = '600';
+        imobRow.innerHTML = `
+            <td style="color: #27ae60;">TOTAL IMOB</td>
+            <td style="color: #27ae60;">R$ ${totais.imob.previsto.toLocaleString('pt-BR')}M</td>
+            <td style="color: #27ae60;">R$ ${totais.imob.realizado.toLocaleString('pt-BR')}M</td>
+            <td style="color: #27ae60;">+R$ ${totais.imob.gap.toLocaleString('pt-BR')}M</td>
+            <td style="color: #27ae60;"><span class="status-dot status-positive"></span>Acima</td>
+            <td style="color: #27ae60;">${totais.imob.previstoUn}/${totais.imob.realizadoUn}</td>
+        `;
+        tableBody.appendChild(imobRow);
+    </script>
+</body>
+</html>
+                                
